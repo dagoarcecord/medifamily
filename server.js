@@ -1,1 +1,57 @@
-echo // MEDIFAMILY - Servidor unificado para Render > server.js && echo const express = require('express'); >> server.js && echo const cors = require('cors'); >> server.js && echo const fs = require('fs'); >> server.js && echo const path = require('path'); >> server.js && echo. >> server.js && echo const app = express(); >> server.js && echo const PORT = process.env.PORT ^|^| 10000; >> server.js && echo const DATA_FILE = path.join('/tmp', 'medifamily_data.json'); >> server.js && echo. >> server.js && echo app.use(cors()); >> server.js && echo app.use(express.json({ limit: '50mb' })); >> server.js && echo. >> server.js && echo function loadData() { >> server.js && echo   try { >> server.js && echo     if (fs.existsSync(DATA_FILE)) { >> server.js && echo       return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8')); >> server.js && echo     } >> server.js && echo   } catch (e) { console.error(e.message); } >> server.js && echo   return {}; >> server.js && echo } >> server.js && echo. >> server.js && echo function saveData(data) { >> server.js && echo   try { >> server.js && echo     data._lastUpdated = new Date().toISOString(); >> server.js && echo     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2)); >> server.js && echo     return true; >> server.js && echo   } catch { return false; } >> server.js && echo } >> server.js && echo. >> server.js && echo app.get('/api/data', (req, res) =^> res.json({ success: true, data: loadData() })); >> server.js && echo app.post('/api/data', (req, res) =^> { >> server.js && echo   const { data } = req.body; >> server.js && echo   if (!data) return res.status(400).json({ error: 'No data' }); >> server.js && echo   res.json({ success: saveData(data) }); >> server.js && echo }); >> server.js && echo. >> server.js && echo app.use(express.static(path.join(__dirname, 'dist'))); >> server.js && echo app.get('*', (req, res) =^> { >> server.js && echo   if (req.path.startsWith('/api/')) return res.status(404).json({ error: 'Not found' }); >> server.js && echo   res.sendFile(path.join(__dirname, 'dist', 'index.html')); >> server.js && echo }); >> server.js && echo. >> server.js && echo app.listen(PORT, '0.0.0.0', () =^> { console.log('MEDIFAMILY online puerto ' + PORT); });
+const express = require('express');
+const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+
+const DATA_FILE = path.join('/tmp', 'medifamily_data.json');
+
+function loadData() {
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    }
+  } catch (e) { console.error(e.message); }
+  return {};
+}
+
+function saveData(data) {
+  try {
+    data._lastUpdated = new Date().toISOString();
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+    return true;
+  } catch (e) { console.error(e.message); return false; }
+}
+
+app.get('/api/data', function(req, res) {
+  res.json({ success: true, data: loadData() });
+});
+
+app.post('/api/data', function(req, res) {
+  var data = req.body.data;
+  if (!data) return res.status(400).json({ error: 'No data' });
+  saveData(data);
+  res.json({ success: true });
+});
+
+app.get('/api/health', function(req, res) {
+  res.json({ status: 'online', uptime: process.uptime() });
+});
+
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get('*', function(req, res) {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+app.listen(PORT, '0.0.0.0', function() {
+  console.log('MEDIFAMILY online en puerto ' + PORT);
+});
